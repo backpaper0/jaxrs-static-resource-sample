@@ -3,8 +3,13 @@ package sample;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -15,6 +20,8 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Test;
 
 public class StaticResourcesTest extends JerseyTest {
+
+    private Counter counter;
 
     /**
      * クラスパスからhello.txtを読み込んで返す事を確認する。
@@ -29,6 +36,7 @@ public class StaticResourcesTest extends JerseyTest {
                 is(MediaType.TEXT_PLAIN_TYPE));
         assertThat("Entity body", response.readEntity(String.class),
                 is("Hello, world!"));
+        assertThat("Count", counter.getCount(), is(1));
     }
 
     /**
@@ -57,6 +65,8 @@ public class StaticResourcesTest extends JerseyTest {
         assertThat("fib(7)", engine.eval("fib(7)"), is(13.0));
         assertThat("fib(8)", engine.eval("fib(8)"), is(21.0));
         assertThat("fib(9)", engine.eval("fib(9)"), is(34.0));
+
+        assertThat("Count", counter.getCount(), is(1));
     }
 
     /**
@@ -69,10 +79,27 @@ public class StaticResourcesTest extends JerseyTest {
         Response response = target("static/reset.css").request().get();
         assertThat("Status code", response.getStatusInfo(),
                 is(Status.NOT_FOUND));
+        assertThat("Count", counter.getCount(), is(1));
     }
 
     @Override
     protected Application configure() {
-        return new ResourceConfig(StaticResources.class);
+        return new ResourceConfig(StaticResources.class)
+                .register(counter = new Counter());
+    }
+
+    public static class Counter implements ContainerRequestFilter {
+
+        private final AtomicInteger count = new AtomicInteger(0);
+
+        @Override
+        public void filter(ContainerRequestContext requestContext)
+                throws IOException {
+            count.incrementAndGet();
+        }
+
+        public int getCount() {
+            return count.get();
+        }
     }
 }
