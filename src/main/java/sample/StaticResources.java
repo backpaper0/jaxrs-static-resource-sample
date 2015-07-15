@@ -3,6 +3,7 @@ package sample;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -10,8 +11,11 @@ import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 @Path("static")
 public class StaticResources {
@@ -19,8 +23,8 @@ public class StaticResources {
 
     @Path("{name:.+\\.(txt|js)}")
     @GET
-    public Response getResource(@PathParam("name") String name)
-            throws IOException {
+    public Response getResource(@PathParam("name") String name,
+            @Context Request request) throws IOException {
 
         URL resource = getClass().getResource("/static/" + name);
         if (resource == null) {
@@ -29,11 +33,18 @@ public class StaticResources {
 
         URLConnection con = resource.openConnection();
 
+        Date lastModified = new Date(con.getLastModified());
+        ResponseBuilder builder = request.evaluatePreconditions(lastModified);
+        if (builder != null) {
+            return builder.build();
+        }
+
         String ext = name.substring(name.lastIndexOf('.'));
 
         MediaType type = types.get(ext);
 
-        return Response.ok(con.getInputStream(), type).build();
+        return Response.ok(con.getInputStream(), type)
+                .lastModified(lastModified).build();
     }
 
     static {

@@ -1,9 +1,12 @@
 package sample;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.script.ScriptEngine;
@@ -11,6 +14,7 @@ import javax.script.ScriptEngineManager;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -80,6 +84,27 @@ public class StaticResourcesTest extends JerseyTest {
         assertThat("Status code", response.getStatusInfo(),
                 is(Status.NOT_FOUND));
         assertThat("Count", counter.getCount(), is(0));
+    }
+
+    /**
+     * if-modified-sinceヘッダで転送量削減
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testIfModigiedSince() throws Exception {
+        Response response = target("static/hello.txt").request().get();
+        assertThat("Status code", response.getStatusInfo(), is(Status.OK));
+
+        Date lastModified = response.getLastModified();
+        assertThat("lastModified", lastModified, is(not(nullValue())));
+
+        Response response2 = target("static/hello.txt").request()
+                .header(HttpHeaders.IF_MODIFIED_SINCE, lastModified).get();
+        assertThat("Status code", response2.getStatusInfo(),
+                is(Status.NOT_MODIFIED));
+
+        assertThat("Count", counter.getCount(), is(2));
     }
 
     @Override
