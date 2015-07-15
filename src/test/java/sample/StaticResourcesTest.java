@@ -79,7 +79,7 @@ public class StaticResourcesTest extends JerseyTest {
         Response response = target("static/reset.css").request().get();
         assertThat("Status code", response.getStatusInfo(),
                 is(Status.NOT_FOUND));
-        assertThat("Count", counter.getCount(), is(1));
+        assertThat("Count", counter.getCount(), is(0));
     }
 
     @Override

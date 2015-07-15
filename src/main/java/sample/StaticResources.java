@@ -17,7 +17,7 @@ import javax.ws.rs.core.Response;
 public class StaticResources {
     private static final ConcurrentMap<String, MediaType> types;
 
-    @Path("{name}")
+    @Path("{name:.+\\.(txt|js)}")
     @GET
     public Response getResource(@PathParam("name") String name)
             throws IOException {
