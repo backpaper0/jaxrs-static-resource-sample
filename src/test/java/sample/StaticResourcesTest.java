@@ -14,6 +14,7 @@ import javax.script.ScriptEngineManager;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -101,6 +102,27 @@ public class StaticResourcesTest extends JerseyTest {
 
         Response response2 = target("static/hello.txt").request()
                 .header(HttpHeaders.IF_MODIFIED_SINCE, lastModified).get();
+        assertThat("Status code", response2.getStatusInfo(),
+                is(Status.NOT_MODIFIED));
+
+        assertThat("Count", counter.getCount(), is(2));
+    }
+
+    /**
+     * if-none-matchヘッダで転送量削減
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testIfNoneMatch() throws Exception {
+        Response response = target("static/hello.txt").request().get();
+        assertThat("Status code", response.getStatusInfo(), is(Status.OK));
+
+        EntityTag eTag = response.getEntityTag();
+        assertThat("ETag", eTag, is(not(nullValue())));
+
+        Response response2 = target("static/hello.txt").request()
+                .header(HttpHeaders.IF_NONE_MATCH, eTag).get();
         assertThat("Status code", response2.getStatusInfo(),
                 is(Status.NOT_MODIFIED));
 
