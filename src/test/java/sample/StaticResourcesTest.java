@@ -59,6 +59,18 @@ public class StaticResourcesTest extends JerseyTest {
         assertThat("fib(9)", engine.eval("fib(9)"), is(34.0));
     }
 
+    /**
+     * ファイルが無かったら404
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testResetCssNotFound() throws Exception {
+        Response response = target("static/reset.css").request().get();
+        assertThat("Status code", response.getStatusInfo(),
+                is(Status.NOT_FOUND));
+    }
+
     @Override
     protected Application configure() {
         return new ResourceConfig(StaticResources.class);
