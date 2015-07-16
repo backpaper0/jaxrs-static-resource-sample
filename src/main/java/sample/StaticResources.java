@@ -21,10 +21,17 @@ import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+/**
+ * 静的ファイルを返すリソースクラス。
+ *
+ * クラスパス上の /static/ ディレクトリ以下のファイルを扱う。
+ * 
+ */
 @Path("static")
 public class StaticResources {
     private static final ConcurrentMap<String, MediaType> types;
 
+    //正規表現で拡張子を.txtと.jsに制限している。
     @Path("{name:.+\\.(txt|js)}")
     @GET
     public Response getResource(@PathParam("name") String name,
@@ -37,12 +44,20 @@ public class StaticResources {
 
         URLConnection con = resource.openConnection();
 
+        //ファイルの更新日時とIf-Modified-Sinceリクエストヘッダを
+        //付き合わせて同じ値ならリソースに変更は無いので304 Not Modifiedを返す。
         Date lastModified = new Date(con.getLastModified());
         ResponseBuilder builder = request.evaluatePreconditions(lastModified);
         if (builder != null) {
             return builder.build();
         }
 
+        //ファイルのETag(ここではMD5ハッシュ値)とIf-Modified-Sinceリクエストヘッダを
+        //付き合わせて同じ値ならリソースに変更は無いので304 Not Modifiedを返す。
+        //このサンプルではMD5ハッシュ値を要求されたリソースのファイル名に.md5を
+        //繋げた名前のファイルから読み出している。
+        //そして.md5ファイルはGradleタスクで書き出しており、IDEで実行している
+        //場合などは.md5ファイルが無いかもしれないのでその辺考慮してる感じ。
         EntityTag eTag = null;
         URL md5 = getClass().getResource("/static/" + name + ".md5");
         if (md5 != null) {
