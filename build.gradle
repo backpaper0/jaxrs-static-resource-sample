@@ -2,6 +2,7 @@ apply plugin: 'java'
 apply plugin: 'war'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: ResourceHashPlugin
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -16,4 +17,21 @@ dependencies {
     providedCompile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
     testCompile 'junit:junit:4.12'
     testCompile 'org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-inmemory:2.19'
+}
+
+class ResourceHashPlugin implements Plugin<Project> {
+    void apply(Project project) {
+        project.task('hash') << {
+            def md = java.security.MessageDigest.getInstance('MD5')
+            project.processResources.destinationDir.traverse {
+                if (it.file) {
+                    def file = new File(it.parent, it.name + '.md5')
+                    def digest = md.digest(it.bytes).collect { String.format('%02x', it) }.join()
+                    file.write(digest)
+                }
+            }
+        }
+        project.war.dependsOn project.hash
+        project.hash.dependsOn project.processResources
+    }
 }

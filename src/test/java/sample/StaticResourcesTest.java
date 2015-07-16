@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,6 +23,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class StaticResourcesTest extends JerseyTest {
@@ -115,6 +117,12 @@ public class StaticResourcesTest extends JerseyTest {
      */
     @Test
     public void testIfNoneMatch() throws Exception {
+
+        //ハッシュファイルはGradleタスクで書き出すのでIDEでテスト実行
+        //するとハッシュファイルが出来なくてアレなのでassume使っとく
+        URL resource = getClass().getResource("/static/hello.txt.md5");
+        Assume.assumeThat(resource, is(not(nullValue())));
+
         Response response = target("static/hello.txt").request().get();
         assertThat("Status code", response.getStatusInfo(), is(Status.OK));
 

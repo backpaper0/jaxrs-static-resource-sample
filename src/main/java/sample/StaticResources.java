@@ -1,12 +1,11 @@
 package sample;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,8 +28,7 @@ public class StaticResources {
     @Path("{name:.+\\.(txt|js)}")
     @GET
     public Response getResource(@PathParam("name") String name,
-            @Context Request request) throws IOException,
-            NoSuchAlgorithmException {
+            @Context Request request) throws IOException {
 
         URL resource = getClass().getResource("/static/" + name);
         if (resource == null) {
@@ -45,35 +43,36 @@ public class StaticResources {
             return builder.build();
         }
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (InputStream in = con.getInputStream()) {
-            byte[] b = new byte[8192];
-            int i;
-            while (-1 != (i = in.read(b))) {
-                out.write(b, 0, i);
+        EntityTag eTag = null;
+        URL md5 = getClass().getResource("/static/" + name + ".md5");
+        if (md5 != null) {
+            StringWriter out = new StringWriter();
+            out.write('"');
+            try (Reader in = new InputStreamReader(md5.openStream())) {
+                char[] c = new char[8192];
+                int i;
+                while (-1 != (i = in.read(c))) {
+                    out.write(c, 0, i);
+                }
             }
-        }
-        byte[] entity = out.toByteArray();
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] digest = md.digest(entity);
-        StringBuilder buf = new StringBuilder();
-        buf.append('"');
-        for (byte b : digest) {
-            buf.append(String.format("%02x", b & 0xff));
-        }
-        buf.append('"');
-        EntityTag eTag = EntityTag.valueOf(buf.toString());
-        builder = request.evaluatePreconditions(eTag);
-        if (builder != null) {
-            return builder.build();
+            out.write('"');
+            eTag = EntityTag.valueOf(out.toString());
+            builder = request.evaluatePreconditions(eTag);
+            if (builder != null) {
+                return builder.build();
+            }
         }
 
         String ext = name.substring(name.lastIndexOf('.'));
 
         MediaType type = types.get(ext);
 
-        return Response.ok(entity, type).lastModified(lastModified).tag(eTag)
-                .build();
+        builder = Response.ok(con.getInputStream(), type).lastModified(
+                lastModified);
+        if (eTag != null) {
+            builder.tag(eTag);
+        }
+        return builder.build();
     }
 
     static {
