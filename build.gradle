@@ -4,6 +4,11 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: ResourceHashPlugin
 
+def env
+if (hasProperty('env')) {
+    env = property('env')
+}
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
@@ -16,7 +21,24 @@ repositories {
 dependencies {
     providedCompile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
     testCompile 'junit:junit:4.12'
-    testCompile 'org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-inmemory:2.19'
+    testCompile 'org.glassfish.jersey.test-framework:jersey-test-framework-core:2.19'
+    testRuntime 'org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-bundle:2.19'
+}
+
+test {
+    systemProperty 'java.util.logging.config.file', 'logging.properties'
+
+    def testFactoryClass
+    switch(env) {
+        case 'grizzly' : testFactoryClass = 'org.glassfish.jersey.test.grizzly.GrizzlyTestContainerFactory'      ; break
+        case 'inmemory': testFactoryClass = 'org.glassfish.jersey.test.inmemory.InMemoryTestContainerFactory'    ; break
+        case 'jdk'     : testFactoryClass = 'org.glassfish.jersey.test.jdkhttp.JdkHttpServerTestContainerFactory'; break
+        case 'jetty'   : testFactoryClass = 'org.glassfish.jersey.test.jetty.JettyTestContainerFactory'          ; break
+        case 'simple'  : testFactoryClass = 'org.glassfish.jersey.test.simple.SimpleTestContainerFactory'        ; break
+    }
+    if (testFactoryClass) {
+        systemProperty 'jersey.config.test.container.factory', testFactoryClass
+    }
 }
 
 class ResourceHashPlugin implements Plugin<Project> {
