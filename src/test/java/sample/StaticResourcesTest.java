@@ -58,6 +58,7 @@ public class StaticResourcesTest extends JerseyTest {
         assertThat("Conetnt-Type", response.getMediaType(),
                 is(MediaType.valueOf("text/javascript")));
 
+        //折角なので(?)Nashornを使ってみる。
         ScriptEngine engine = new ScriptEngineManager()
                 .getEngineByMimeType("text/javascript");
         engine.eval(response.readEntity(String.class));
@@ -156,6 +157,10 @@ public class StaticResourcesTest extends JerseyTest {
                 .register(counter = new Counter());
     }
 
+    /**
+     * リソースメソッドが呼ばれた回数を数えるためのフィルター。
+     *
+     */
     public static class Counter implements ContainerRequestFilter {
 
         private final AtomicInteger count = new AtomicInteger(0);
