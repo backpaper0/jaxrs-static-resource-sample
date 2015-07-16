@@ -77,7 +77,7 @@ public class StaticResourcesTest extends JerseyTest {
     }
 
     /**
-     * ファイルが無かったら404
+     * ファイルが無かったら404(拡張子が対象外)
      * 
      * @throws Exception
      */
@@ -87,6 +87,19 @@ public class StaticResourcesTest extends JerseyTest {
         assertThat("Status code", response.getStatusInfo(),
                 is(Status.NOT_FOUND));
         assertThat("Count", counter.getCount(), is(0));
+    }
+
+    /**
+     * ファイルが無かったら404
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testAppJsNotFound() throws Exception {
+        Response response = target("static/app.js").request().get();
+        assertThat("Status code", response.getStatusInfo(),
+                is(Status.NOT_FOUND));
+        assertThat("Count", counter.getCount(), is(1));
     }
 
     /**
