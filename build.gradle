@@ -1,8 +1,19 @@
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "gradle.plugin.com.github.backpaper0:gradle-hash-plugin:1.0-SNAPSHOT"
+  }
+}
+
 apply plugin: 'java'
 apply plugin: 'war'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
-apply plugin: ResourceHashPlugin
+apply plugin: 'com.github.backpaper0.hash'
 
 def env
 if (hasProperty('env')) {
@@ -40,30 +51,3 @@ test {
         systemProperty 'jersey.config.test.container.factory', testFactoryClass
     }
 }
-
-class ResourceHashPlugin implements Plugin<Project> {
-    void apply(Project project) {
-        project.pluginManager.apply(JavaPlugin.class)
-        project.tasks.create('hash', ResourceHashTask.class)
-        project.classes.dependsOn project.hash
-        project.hash.dependsOn project.processResources
-    }
-}
-
-class ResourceHashTask extends DefaultTask {
-    def algorithm = 'MD5'
-    def resources = project.fileTree(project.processResources.destinationDir)
-    @TaskAction
-    def hash() {
-        def md = java.security.MessageDigest.getInstance(algorithm)
-        resources.visit {
-            def src = it.file
-            if (src.file) {
-                def file = new File(src.parent, src.name + '.' + algorithm.toLowerCase())
-                def digest = md.digest(src.bytes).collect { String.format('%02x', it) }.join()
-                file.write(digest)
-            }
-        }
-    }
-}
-
