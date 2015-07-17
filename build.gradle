@@ -43,17 +43,27 @@ test {
 
 class ResourceHashPlugin implements Plugin<Project> {
     void apply(Project project) {
-        project.task('hash') << {
-            def md = java.security.MessageDigest.getInstance('MD5')
-            project.processResources.destinationDir.traverse {
-                if (it.file) {
-                    def file = new File(it.parent, it.name + '.md5')
-                    def digest = md.digest(it.bytes).collect { String.format('%02x', it) }.join()
-                    file.write(digest)
-                }
-            }
-        }
-        project.war.dependsOn project.hash
+        project.pluginManager.apply(JavaPlugin.class)
+        project.tasks.create('hash', ResourceHashTask.class)
+        project.classes.dependsOn project.hash
         project.hash.dependsOn project.processResources
     }
 }
+
+class ResourceHashTask extends DefaultTask {
+    def algorithm = 'MD5'
+    def resources = project.fileTree(project.processResources.destinationDir)
+    @TaskAction
+    def hash() {
+        def md = java.security.MessageDigest.getInstance(algorithm)
+        resources.visit {
+            def src = it.file
+            if (src.file) {
+                def file = new File(src.parent, src.name + '.' + algorithm.toLowerCase())
+                def digest = md.digest(src.bytes).collect { String.format('%02x', it) }.join()
+                file.write(digest)
+            }
+        }
+    }
+}
+
